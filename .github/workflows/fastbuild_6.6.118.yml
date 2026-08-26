@@ -585,8 +585,9 @@ jobs:
           wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/lib/libfakestat.so
           wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/lib/libfaketimeMT.so
           chmod 777 ./*.so
-          export FAKESTAT="2025-05-25 12:00:00"
-          export FAKETIME="@2025-05-25 13:00:00"
+          export KBUILD_BUILD_USER=kleaf KBUILD_BUILD_HOST=build-host KBUILD_BUILD_TIMESTAMP="Mon Mar 30 10:41:25 UTC 2026"
+          export FAKESTAT="2026-03-30 12:00:00"
+          export FAKETIME="@2026-03-30 13:00:00"
           echo "FAKESTAT=$FAKESTAT" >> $GITHUB_ENV
           echo "FAKETIME=$FAKETIME" >> $GITHUB_ENV
           SO_DIR=$(pwd)
