@@ -383,11 +383,11 @@ jobs:
           sed -i 's/check_defconfig//' ./common/build.config.gki
           #跳过将uapi标准头安装到 usr/include 目录的不必要操作，节省编译时间
           echo "CONFIG_HEADERS_INSTALL=n" >> ./common/arch/arm64/configs/gki_defconfig
-          # 开启 KEXEC 支持（kexec 系统调用，后续可用于内核热切换）
-          # 依赖链: CONFIG_HIBERNATION=y(已有) -> PM_SLEEP_SMP -> ARCH_SUPPORTS_KEXEC, ARCH_SUPPORTS_KEXEC_FILE=y(arm64固定)
-          # CONFIG_KEXEC_CORE 由 KEXEC/KEXEC_FILE 自动 select，无需显式开启
+          # === 实验 A：仅开启 KEXEC core，关闭 KEXEC_FILE 用于 A/B 诊断 ===
+          # 依赖(已核实): CONFIG_HIBERNATION=y -> PM_SLEEP_SMP -> ARCH_SUPPORTS_KEXEC；ARCH_SUPPORTS_KEXEC_FILE=y(arm64固定)
+          # CONFIG_KEXEC_CORE 由 KEXEC select；KEXEC_FILE=n 时仅 kexec_load() 可用、kexec_file_load() 不可用
           echo "CONFIG_KEXEC=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KEXEC_FILE=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KEXEC_FILE=n" >> ./common/arch/arm64/configs/gki_defconfig
           # 应用 CVE_2026_43499 修复补丁
           cd common
           wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/cve-2026-43499-rtmutex-6.6.patch
@@ -665,7 +665,30 @@ jobs:
           ./kptools-linux -p -i ./Image -k ./kpimg-linux -o ./oImage
           rm -f Image
           mv oImage Image
-          
+
+      - name: 上传 .config 诊断产物 (实验用)
+        if: always()
+        run: |
+          echo "上传最终 .config 与 modinfo 供 A/B 配置差异诊断..."
+          ls -la kernel_workspace/common/out/.config 2>/dev/null || echo "no .config"
+          ls -la kernel_workspace/common/out/ 2>/dev/null | head -30
+          # 记录实际生效的关键 CONFIG 到独立文件，便于快速 grep
+          { grep -E "^CONFIG_KEXEC|^# CONFIG_KEXEC|^CONFIG_KEXEC_FILE|^# CONFIG_KEXEC_FILE|^CONFIG_CRASH|^# CONFIG_CRASH|^CONFIG_KEXEC_CORE|^# CONFIG_KEXEC_CORE|^CONFIG_REKERNEL|^CONFIG_BBG|^# CONFIG_BBG|^CONFIG_MODVERSIONS|^CONFIG_RANDOMIZE_BASE|^CONFIG_RELOCATABLE|^CONFIG_KSU|^CONFIG_SUSFS" kernel_workspace/common/out/.config; } > kernel_workspace/config_diag.txt || true
+          echo "--- config_diag.txt ---"
+          cat kernel_workspace/config_diag.txt 2>/dev/null || echo "empty"
+        continue-on-error: true
+      
+      - name: 上传 config 与内核诊断工件
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: diag-config-kexec
+          path: |
+            kernel_workspace/config_diag.txt
+            kernel_workspace/common/out/.config
+          compression-level: 9
+          if-no-files-found: warn
+
       - name: 克隆 AnyKernel3 并打包
         id: create_zip
         run: |
