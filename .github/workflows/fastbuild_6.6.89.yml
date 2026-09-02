@@ -383,6 +383,9 @@ jobs:
           sed -i 's/check_defconfig//' ./common/build.config.gki
           #跳过将uapi标准头安装到 usr/include 目录的不必要操作，节省编译时间
           echo "CONFIG_HEADERS_INSTALL=n" >> ./common/arch/arm64/configs/gki_defconfig
+          # === 实验：6.6.89 + KEXEC（仅开 KEXEC core，关 KEXEC_FILE）用于平台兼容性诊断 ===
+          echo "CONFIG_KEXEC=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KEXEC_FILE=n" >> ./common/arch/arm64/configs/gki_defconfig
           # 应用 CVE_2026_43499 修复补丁
           cd common
           wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/cve-2026-43499-rtmutex-6.6.patch
