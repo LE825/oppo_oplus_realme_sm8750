@@ -383,6 +383,11 @@ jobs:
           sed -i 's/check_defconfig//' ./common/build.config.gki
           #跳过将uapi标准头安装到 usr/include 目录的不必要操作，节省编译时间
           echo "CONFIG_HEADERS_INSTALL=n" >> ./common/arch/arm64/configs/gki_defconfig
+          # 开启 KEXEC 支持（kexec 系统调用，后续可用于内核热切换）
+          # 依赖链: CONFIG_HIBERNATION=y(已有) -> PM_SLEEP_SMP -> ARCH_SUPPORTS_KEXEC, ARCH_SUPPORTS_KEXEC_FILE=y(arm64固定)
+          # CONFIG_KEXEC_CORE 由 KEXEC/KEXEC_FILE 自动 select，无需显式开启
+          echo "CONFIG_KEXEC=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KEXEC_FILE=y" >> ./common/arch/arm64/configs/gki_defconfig
           # 应用 CVE_2026_43499 修复补丁
           cd common
           wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/other_patch/cve-2026-43499-rtmutex-6.6.patch
